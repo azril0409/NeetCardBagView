@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">NeetCardBagView</string>
+    <string-array name="list">
+        <item>Android 01</item>
+        <item>Android 02</item>
+        <item>Android 03</item>
+        <item>Android 04</item>
+        <item>Android 05</item>
+        <item>Android 06</item>
+        <item>Android 07</item>
+        <item>Android 08</item>
+        <item>Android 09</item>
+        <item>Android 10</item>
+        <item>Android 11</item>
+        <item>Android 12</item>
+    </string-array>
 </resources>

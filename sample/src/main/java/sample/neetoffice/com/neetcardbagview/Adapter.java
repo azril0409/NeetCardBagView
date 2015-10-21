@@ -2,6 +2,7 @@ package sample.neetoffice.com.neetcardbagview;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,19 +18,35 @@ public class Adapter extends CardBagTextAdapter {
 
     public Adapter(Context context) {
         super(context);
-        titles = new String[]{"Android 1", "Android 2", "Android 3", "Android 4"};
+        titles = context.getResources().getStringArray(R.array.list);
     }
 
     @Override
     public Drawable getCardBackground(int position) {
-        if (position == 0) {
-            return getContext().getResources().getDrawable(R.drawable.android1,getContext().getTheme());
-        } else if (position == 1) {
-            return getContext().getResources().getDrawable(R.drawable.android2,getContext().getTheme());
-        } else if (position == 2) {
-            return getContext().getResources().getDrawable(R.drawable.android3,getContext().getTheme());
-        } else if (position == 3) {
-            return getContext().getResources().getDrawable(R.drawable.android4,getContext().getTheme());
+        if (position % 4 == 0) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                return getContext().getResources().getDrawable(R.drawable.android1, getContext().getTheme());
+            } else {
+                return getContext().getResources().getDrawable(R.drawable.android1);
+            }
+        } else if (position % 4 == 1) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                return getContext().getResources().getDrawable(R.drawable.android2, getContext().getTheme());
+            } else {
+                return getContext().getResources().getDrawable(R.drawable.android2);
+            }
+        } else if (position % 4 == 2) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                return getContext().getResources().getDrawable(R.drawable.android3, getContext().getTheme());
+            } else {
+                return getContext().getResources().getDrawable(R.drawable.android3);
+            }
+        } else if (position % 4 == 3) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                return getContext().getResources().getDrawable(R.drawable.android4, getContext().getTheme());
+            } else {
+                return getContext().getResources().getDrawable(R.drawable.android4);
+            }
         }
         return super.getCardBackground(position);
     }
@@ -55,7 +72,7 @@ public class Adapter extends CardBagTextAdapter {
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getView(final int position, View convertView, ViewGroup parent) {
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.cell, parent, false);
         } else {
@@ -64,7 +81,7 @@ public class Adapter extends CardBagTextAdapter {
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(getContext(), "onClick", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), titles[position] + " onClick", Toast.LENGTH_SHORT).show();
             }
         });
         return convertView;

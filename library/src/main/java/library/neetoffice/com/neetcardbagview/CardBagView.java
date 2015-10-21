@@ -1,6 +1,5 @@
 package library.neetoffice.com.neetcardbagview;
 
-import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.annotation.TargetApi;
@@ -27,10 +26,11 @@ public class CardBagView extends FrameLayout {
     private final static int COLSE_DOWN = 4;
     private final AnimationTask animationTask = new AnimationTask();
     private float startY = 0;
+    private float startX = 0;
     private long startDownTime = 0;
     private AdapterDataSetObserver mDataSetObserver;
     private CardBagAdapter mAdapter;
-    private ShowingCard showingCard = null;
+    private int showingCard = -1;
     private final OnClickListener titleListener = new OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -68,6 +68,7 @@ public class CardBagView extends FrameLayout {
         } else {
 
         }
+        mVelocityTracker = VelocityTracker.obtain();
     }
 
     @Override
@@ -87,22 +88,31 @@ public class CardBagView extends FrameLayout {
         final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
         for (int index = 0; index < mCount; index++) {
             View child = getChildAt(mCount - index - 1);
+            CardBagController cardBagController = (CardBagController) child.getTag();
             child.setY(height - titleHeight * (index + 1));
+            cardBagController.originalY = child.getY();
+            cardBagController.originalX = child.getX();
         }
+        Log.d(TAG, String.format("get Padding Top : %s", getPaddingTop()));
+        Log.d(TAG, String.format("get Padding Bottom : %s", getPaddingBottom()));
+        Log.d(TAG, String.format("get Padding Left : %s", getPaddingLeft()));
+        Log.d(TAG, String.format("get Padding Right : %s", getPaddingRight()));
         super.onLayout(changed, left, top, right, bottom);
     }
 
     @Override
     public void computeScroll() {
-        Log.d(TAG, "computeScroll");
+        Log.d(TAG + "_computeScroll", "computeScroll");
     }
 
     @Override
     public boolean onInterceptTouchEvent(MotionEvent event) {
         final int action = event.getAction();
-        if (showingCard != null) {
+        mVelocityTracker.addMovement(event);
+        mVelocityTracker.computeCurrentVelocity(1);
+        if (showingCard > -1) {
             if (MotionEvent.ACTION_DOWN == action) {
-                final View child = getChildAt(showingCard.id);
+                final View child = getChildAt(showingCard);
                 final RectF rect = new RectF(child.getX(), child.getY(), child.getX() + child.getMeasuredWidth(), child.getMeasuredHeight());
                 if (!rect.contains(event.getX(), event.getY())) {
                     TouchStatus = COLSE_DOWN;
@@ -110,10 +120,10 @@ public class CardBagView extends FrameLayout {
             } else if (MotionEvent.ACTION_UP == action) {
                 if (TouchStatus == COLSE_DOWN) {
                     TouchStatus = NORMAL;
-                    final View child = getChildAt(showingCard.id);
+                    final View child = getChildAt(showingCard);
                     final RectF rect = new RectF(child.getX(), child.getY(), child.getX() + child.getMeasuredWidth(), child.getMeasuredHeight());
                     if (!rect.contains(event.getX(), event.getY())) {
-                        Log.d(TAG, "onInterceptTouchEvent : close()");
+                        Log.d(TAG + "_onInterceptTouchEvent", "onInterceptTouchEvent : close()");
                         close();
                         return true;
                     }
@@ -123,15 +133,17 @@ public class CardBagView extends FrameLayout {
         } else {
             if (MotionEvent.ACTION_DOWN == action) {
                 startY = event.getY();
+                startX = event.getX();
                 startDownTime = Calendar.getInstance().getTimeInMillis();
             } else if (MotionEvent.ACTION_MOVE == action) {
                 float y = event.getY();
-                move(y - startY);
+                float x = event.getX();
+                move(x - startX, y - startY);
                 startY = y;
+                startX = x;
             } else if (MotionEvent.ACTION_UP == action) {
                 boolean isClick = isClick(event);
                 if (!isClick) {
-                    Log.d(TAG, "onInterceptTouchEvent : moveEnd()");
                     moveEnd();
                 }
                 startY = 0;
@@ -142,60 +154,11 @@ public class CardBagView extends FrameLayout {
         return false;
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        final int action = event.getAction();
-        if (showingCard != null) {
-            if (MotionEvent.ACTION_DOWN == action) {
-                TouchStatus = COLSE_DOWN;
-                return true;
-            } else if (MotionEvent.ACTION_UP == action) {
-                TouchStatus = NORMAL;
-                final View child = getChildAt(showingCard.id);
-                final RectF rect = new RectF(child.getX(), child.getY(), child.getX() + child.getMeasuredWidth(), child.getMeasuredHeight());
-                if (!rect.contains(event.getX(), event.getY())) {
-                    Log.d(TAG, "onTouchEvents : close()");
-                    close();
-                }
-            }
-        } else {
-            if (mVelocityTracker == null) {
-                mVelocityTracker = VelocityTracker.obtain();
-            }
-            mVelocityTracker.addMovement(event);
-            if (MotionEvent.ACTION_DOWN == action) {
-                startY = event.getY();
-                startDownTime = Calendar.getInstance().getTimeInMillis();
-            } else if (MotionEvent.ACTION_MOVE == action) {
-                float y = event.getY();
-                move(y - startY);
-                startY = y;
-            } else if (MotionEvent.ACTION_UP == action) {
-                boolean isClick = false;
-                final View firstChild = getChildAt(0);
-                final View lastChild = getChildAt(getChildCount() - 1);
-                final RectF rect = new RectF(firstChild.getX(), firstChild.getY(), lastChild.getX() + lastChild.getMeasuredWidth(), firstChild.getY() + lastChild.getMeasuredHeight());
-                if (rect.contains(event.getX(), event.getY())) {
-                    isClick = true;
-                } else {
-                    isClick = false;
-                }
-                if (isClick) {
-                    Log.d(TAG, "onTouchEvents : moveEnd()");
-                    moveEnd();
-                }
-                startY = 0;
-                startDownTime = 0;
-            }
-        }
-        boolean b = super.onTouchEvent(event);
-        return b;
-    }
-
     private boolean isClick(MotionEvent event) {
         final long time = Calendar.getInstance().getTimeInMillis();
         boolean isClick = false;
-        if (time - startDownTime < 100 && event.getY() - startY < 10) {
+        Log.d(TAG + "_YVelocity", String.format("isClick.getYVelocity : %s", Math.abs(mVelocityTracker.getYVelocity())));
+        if (time - startDownTime < 100 && Math.abs(mVelocityTracker.getYVelocity()) < 1) {
             isClick = true;
         }
         return isClick;
@@ -205,7 +168,7 @@ public class CardBagView extends FrameLayout {
         if (animationTask.isAnimationPlaying()) {
             return;
         }
-        if (showingCard == null) {
+        if (showingCard < 0) {
             final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
             final float height = getMeasuredHeight();
             AnimatorSet.Builder builder = null;
@@ -214,12 +177,11 @@ public class CardBagView extends FrameLayout {
                 View view = getChildAt(i);
                 ObjectAnimator animator = null;
                 if (i == position) {
-                    showingCard = new ShowingCard(position, view.getY());
+                    showingCard = position;
                     animator = ObjectAnimator.ofFloat(view, "y", view.getY(), 0);
                 } else if (i < position) {
                     animator = ObjectAnimator.ofFloat(view, "y", view.getY(), 0);
                 } else if (i > position) {
-                    Log.d(TAG, String.format("p = %s", i - position - 3));
                     animator = ObjectAnimator.ofFloat(view, "y", view.getY(), height + (titleHeight / 4F * (i - position - 3)));
                 }
                 if (animator != null) {
@@ -239,84 +201,79 @@ public class CardBagView extends FrameLayout {
         if (animationTask.isAnimationPlaying()) {
             return;
         }
-        if (showingCard != null) {
-            final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
-            final float height = getMeasuredHeight();
+        if (showingCard > -1) {
             AnimatorSet.Builder builder = null;
             final int mCount = getChildCount();
             for (int i = 0; i < mCount; i++) {
                 View view = getChildAt(i);
-                ObjectAnimator animator = null;
-                if (i == showingCard.id) {
-                    animator = ObjectAnimator.ofFloat(view, "y", view.getY(), showingCard.originalY);
+                CardBagController cardBagController = (CardBagController) view.getTag();
+                ObjectAnimator animatorY = ObjectAnimator.ofFloat(view, "y", view.getY(), cardBagController.originalY);
+                ObjectAnimator animatorX = ObjectAnimator.ofFloat(view, "x", view.getX(), cardBagController.originalX);
+                if (builder == null) {
+                    builder = animationTask.play(animatorY).with(animatorX);
                 } else {
-                    animator = ObjectAnimator.ofFloat(view, "y", view.getY(), showingCard.originalY + titleHeight * (i - showingCard.id));
-                }
-                if (animator != null) {
-                    if (builder == null) {
-                        builder = animationTask.play(animator);
-                    } else {
-                        builder.with(animator);
-                    }
+                    builder.with(animatorY).with(animatorX);
                 }
             }
             animationTask.start();
-            showingCard = null;
+            showingCard = -1;
         }
     }
 
-
-    private void move(float y) {
-        if (animationTask.isAnimationPlaying()) {
-            return;
+    private void move(float x, float y) {
+        synchronized (this) {
+            if (animationTask.isAnimationPlaying()) {
+                return;
+            }
+            final float height = getMeasuredHeight();
+            final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
+            Log.d(TAG + "_move", String.format(" height = %s", height));
+            Log.d(TAG + "_move", String.format("titleHeight = %s", titleHeight));
+            final int mCount = getChildCount();
+            if (getChildAt(mCount - 1).getY() < height - titleHeight * 2) {
+                return;
+            }
+            boolean isSave = false;
+            if (height > getChildAt(0).getY() + titleHeight * mCount) {
+                isSave = true;
+            } else if (height < getChildAt(0).getY() + titleHeight) {
+                isSave = true;
+            }
+            for (int index = 0; index < mCount; index++) {
+                View child = getChildAt(mCount - index - 1);
+                float ty = child.getY() + y;
+                child.setY(ty);
+                if (!isSave) {
+                    CardBagController cardBagController = (CardBagController) child.getTag();
+                    cardBagController.originalX = child.getX();
+                    final float bottomY = height + titleHeight * (mCount - index - 2);
+                    cardBagController.originalY = child.getY() > bottomY ? bottomY : child.getY();
+                    Log.d(TAG + "_move", String.format("index = %s , originalY = %s", mCount - index - 1, cardBagController.originalY));
+                }
+            }
         }
-        final float height = getMeasuredHeight();
-        final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
-        final int mCount = getChildCount();
-        if (getChildAt(mCount - 1).getY() < height - titleHeight * 2) {
-            return;
-        }
-        for (int index = 0; index < mCount; index++) {
-            View child = getChildAt(mCount - index - 1);
-            child.setY(child.getY() + y);
-        }
-
     }
 
     private void moveEnd() {
-        if (animationTask.isAnimationPlaying()) {
-            return;
-        }
-        final float height = getMeasuredHeight();
-        final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
-        final int mCount = getChildCount();
-        if (height > getChildAt(mCount - 1).getY() + titleHeight) {
+        synchronized (this) {
+            if (animationTask.isAnimationPlaying()) {
+                return;
+            }
+            final int mCount = getChildCount();
             AnimatorSet.Builder builder = null;
             final AnimatorSet set = new AnimatorSet();
             for (int index = 0; index < mCount; index++) {
                 View child = getChildAt(mCount - index - 1);
-                ObjectAnimator animator = ObjectAnimator.ofFloat(child, "y", child.getY(), height - titleHeight * (index + 1));
+                CardBagController cardBagController = (CardBagController) child.getTag();
+                ObjectAnimator animatorY = ObjectAnimator.ofFloat(child, "y", child.getY(), cardBagController.originalY);
+                ObjectAnimator animatorX = ObjectAnimator.ofFloat(child, "x", child.getX(), cardBagController.originalX);
                 if (builder == null) {
-                    builder = set.play(animator);
+                    builder = set.play(animatorY).with(animatorX);
                 } else {
-                    builder = builder.with(animator);
+                    builder = builder.with(animatorY).with(animatorX);
                 }
             }
             set.start();
-        } else if (height < getChildAt(0).getY() + titleHeight) {
-            AnimatorSet.Builder builder = null;
-            final AnimatorSet set = new AnimatorSet();
-            for (int index = 0; index < mCount; index++) {
-                View child = getChildAt(index);
-                ObjectAnimator animator = ObjectAnimator.ofFloat(child, "y", child.getY(), height + titleHeight * (index - 1));
-                if (builder == null) {
-                    builder = set.play(animator);
-                } else {
-                    builder = builder.with(animator);
-                }
-            }
-            set.start();
-
         }
     }
 
@@ -335,6 +292,8 @@ public class CardBagView extends FrameLayout {
         do {
             Log.d(TAG, String.format("position = %s", position));
             LinearLayout child = new LinearLayout(getContext());
+            CardBagController cardBagController = new CardBagController();
+            child.setTag(cardBagController);
             final FrameLayout titleViewGroup = new FrameLayout(getContext());
             final FrameLayout contentViewGroup = new FrameLayout(getContext());
             final View cardTitleView = mAdapter.getCardTitleView(position, titleView, null);
@@ -383,43 +342,6 @@ public class CardBagView extends FrameLayout {
         if (mAdapter != null && mDataSetObserver != null) {
             mAdapter.unregisterDataSetObserver(mDataSetObserver);
             mDataSetObserver = null;
-        }
-    }
-
-    private class OpenAnimatorListener implements Animator.AnimatorListener {
-        private final int index;
-
-        private OpenAnimatorListener(int index) {
-            this.index = index;
-        }
-
-        @Override
-        public void onAnimationStart(Animator animation) {
-        }
-
-        @Override
-        public void onAnimationEnd(Animator animation) {
-            View child = getChildAt(index);
-            Log.d(TAG, "---onAnimationEnd---");
-            Log.d(TAG, String.format("x = %s", child.getX()));
-            Log.d(TAG, String.format("y = %s", child.getY()));
-            Log.d(TAG, String.format("height = %s", child.getMeasuredHeight()));
-            Log.d(TAG, String.format("width = %s", child.getMeasuredWidth()));
-            Log.d(TAG, String.format("top = %s", child.getTop()));
-            Log.d(TAG, String.format("left = %s", child.getLeft()));
-            Log.d(TAG, "---onAnimationEnd---");
-            //new RelativeLayout.LayoutParams();
-            //removeViewInLayout(child);
-            //ViewGroup content = (ViewGroup) getRootView().findViewById(android.R.id.content);  ;
-            //content.addView(child);
-        }
-
-        @Override
-        public void onAnimationCancel(Animator animation) {
-        }
-
-        @Override
-        public void onAnimationRepeat(Animator animation) {
         }
     }
 
