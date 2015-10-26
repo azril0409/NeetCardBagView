@@ -1,5 +1,6 @@
 package library.neetoffice.com.neetcardbagview;
 
+import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.annotation.TargetApi;
@@ -25,8 +26,9 @@ public class CardBagView extends FrameLayout {
     private final static int NORMAL = 0;
     private final static int COLSE_DOWN = 4;
     private final AnimationTask animationTask = new AnimationTask();
+    float sumY = 0;
+    private float bottomY = 0;
     private float startY = 0;
-    private float startX = 0;
     private long startDownTime = 0;
     private AdapterDataSetObserver mDataSetObserver;
     private CardBagAdapter mAdapter;
@@ -87,22 +89,30 @@ public class CardBagView extends FrameLayout {
         final float height = getMeasuredHeight();
         final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
         for (int index = 0; index < mCount; index++) {
-            View child = getChildAt(mCount - index - 1);
-            CardBagController cardBagController = (CardBagController) child.getTag();
-            child.setY(height - titleHeight * (index + 1));
-            cardBagController.originalY = child.getY();
-            cardBagController.originalX = child.getX();
+            CardBagController child = (CardBagController) getChildAt(index);
+            child.setY(titleHeight * index);
+            child.index = index;
         }
-        Log.d(TAG, String.format("get Padding Top : %s", getPaddingTop()));
-        Log.d(TAG, String.format("get Padding Bottom : %s", getPaddingBottom()));
-        Log.d(TAG, String.format("get Padding Left : %s", getPaddingLeft()));
-        Log.d(TAG, String.format("get Padding Right : %s", getPaddingRight()));
+        sumY = 0;
+        bottomY = height - (titleHeight * mCount);
         super.onLayout(changed, left, top, right, bottom);
     }
 
     @Override
     public void computeScroll() {
         Log.d(TAG + "_computeScroll", "computeScroll");
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        final int action = event.getAction();
+        if (showingCard > -1) {
+            if (MotionEvent.ACTION_UP == action) {
+                close();
+            }
+            return true;
+        }
+        return super.onTouchEvent(event);
     }
 
     @Override
@@ -133,18 +143,15 @@ public class CardBagView extends FrameLayout {
         } else {
             if (MotionEvent.ACTION_DOWN == action) {
                 startY = event.getY();
-                startX = event.getX();
                 startDownTime = Calendar.getInstance().getTimeInMillis();
             } else if (MotionEvent.ACTION_MOVE == action) {
                 float y = event.getY();
-                float x = event.getX();
-                move(x - startX, y - startY);
+                move(y);
                 startY = y;
-                startX = x;
             } else if (MotionEvent.ACTION_UP == action) {
                 boolean isClick = isClick(event);
                 if (!isClick) {
-                    moveEnd();
+                    moveEnd(mVelocityTracker.getYVelocity());
                 }
                 startY = 0;
                 startDownTime = 0;
@@ -168,6 +175,7 @@ public class CardBagView extends FrameLayout {
         if (animationTask.isAnimationPlaying()) {
             return;
         }
+        final float pty = getPaddingTop();
         if (showingCard < 0) {
             final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
             final float height = getMeasuredHeight();
@@ -178,11 +186,11 @@ public class CardBagView extends FrameLayout {
                 ObjectAnimator animator = null;
                 if (i == position) {
                     showingCard = position;
-                    animator = ObjectAnimator.ofFloat(view, "y", view.getY(), 0);
+                    animator = ObjectAnimator.ofFloat(view, "unOriginalY", view.getY(), pty);
                 } else if (i < position) {
-                    animator = ObjectAnimator.ofFloat(view, "y", view.getY(), 0);
+                    animator = ObjectAnimator.ofFloat(view, "unOriginalY", view.getY(), pty);
                 } else if (i > position) {
-                    animator = ObjectAnimator.ofFloat(view, "y", view.getY(), height + (titleHeight / 4F * (i - position - 3)));
+                    animator = ObjectAnimator.ofFloat(view, "unOriginalY", view.getY(), height + (titleHeight / 4F * (i - position - 3)));
                 }
                 if (animator != null) {
                     if (builder == null) {
@@ -205,14 +213,12 @@ public class CardBagView extends FrameLayout {
             AnimatorSet.Builder builder = null;
             final int mCount = getChildCount();
             for (int i = 0; i < mCount; i++) {
-                View view = getChildAt(i);
-                CardBagController cardBagController = (CardBagController) view.getTag();
-                ObjectAnimator animatorY = ObjectAnimator.ofFloat(view, "y", view.getY(), cardBagController.originalY);
-                ObjectAnimator animatorX = ObjectAnimator.ofFloat(view, "x", view.getX(), cardBagController.originalX);
+                CardBagController view = (CardBagController) getChildAt(i);
+                ObjectAnimator animatorY = ObjectAnimator.ofFloat(view, "unOriginalY", view.getY(), view.getOriginalY());
                 if (builder == null) {
-                    builder = animationTask.play(animatorY).with(animatorX);
+                    builder = animationTask.play(animatorY);
                 } else {
-                    builder.with(animatorY).with(animatorX);
+                    builder.with(animatorY);
                 }
             }
             animationTask.start();
@@ -220,61 +226,57 @@ public class CardBagView extends FrameLayout {
         }
     }
 
-    private void move(float x, float y) {
-        synchronized (this) {
-            if (animationTask.isAnimationPlaying()) {
-                return;
-            }
-            final float height = getMeasuredHeight();
-            final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
-            Log.d(TAG + "_move", String.format(" height = %s", height));
-            Log.d(TAG + "_move", String.format("titleHeight = %s", titleHeight));
-            final int mCount = getChildCount();
-            if (getChildAt(mCount - 1).getY() < height - titleHeight * 2) {
-                return;
-            }
-            boolean isSave = false;
-            if (height > getChildAt(0).getY() + titleHeight * mCount) {
-                isSave = true;
-            } else if (height < getChildAt(0).getY() + titleHeight) {
-                isSave = true;
-            }
-            for (int index = 0; index < mCount; index++) {
-                View child = getChildAt(mCount - index - 1);
-                float ty = child.getY() + y;
-                child.setY(ty);
-                if (!isSave) {
-                    CardBagController cardBagController = (CardBagController) child.getTag();
-                    cardBagController.originalX = child.getX();
-                    final float bottomY = height + titleHeight * (mCount - index - 2);
-                    cardBagController.originalY = child.getY() > bottomY ? bottomY : child.getY();
-                    Log.d(TAG + "_move", String.format("index = %s , originalY = %s", mCount - index - 1, cardBagController.originalY));
-                }
-            }
+    private void move(float y) {
+        if (animationTask.isAnimationPlaying()) {
+            return;
         }
+        final float pby = getPaddingBottom();
+        final float height = getMeasuredHeight();
+        final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
+        final int mCount = getChildCount();
+        final float dy = y - startY;
+        if ((getChildAt(mCount - 1).getY() + dy) < (height - titleHeight * 2 - pby)) {
+            return;
+        }
+        sumY = sumY + dy;
+        Log.d(TAG + "_move", String.format("sumY : %s", sumY));
+        Log.d(TAG + "_move", String.format("dy : %s", dy));
+        for (int index = 0; index < mCount; index++) {
+            CardBagController child = (CardBagController) getChildAt(mCount - index - 1);
+            float ty = child.getOriginalY() + dy;
+            child.setY(ty);
+        }
+
     }
 
-    private void moveEnd() {
-        synchronized (this) {
-            if (animationTask.isAnimationPlaying()) {
-                return;
-            }
-            final int mCount = getChildCount();
-            AnimatorSet.Builder builder = null;
-            final AnimatorSet set = new AnimatorSet();
-            for (int index = 0; index < mCount; index++) {
-                View child = getChildAt(mCount - index - 1);
-                CardBagController cardBagController = (CardBagController) child.getTag();
-                ObjectAnimator animatorY = ObjectAnimator.ofFloat(child, "y", child.getY(), cardBagController.originalY);
-                ObjectAnimator animatorX = ObjectAnimator.ofFloat(child, "x", child.getX(), cardBagController.originalX);
-                if (builder == null) {
-                    builder = set.play(animatorY).with(animatorX);
-                } else {
-                    builder = builder.with(animatorY).with(animatorX);
-                }
-            }
-            set.start();
+    private void moveEnd(float velocityY) {
+        if (animationTask.isAnimationPlaying()) {
+            return;
         }
+        Log.d(TAG + "_moveEnd", String.format("sumY : %s", sumY));
+        final float titleHeight = getResources().getDimensionPixelSize(R.dimen.default_card_layout_title);
+        final float pby = getPaddingBottom();
+        final float height = getMeasuredHeight();
+        final int mCount = getChildCount();
+        AnimatorSet.Builder builder = null;
+        final AnimatorSet set = new AnimatorSet();
+        for (int index = 0; index < mCount; index++) {
+            CardBagController child = (CardBagController) getChildAt(mCount - index - 1);
+            ObjectAnimator animatorY;
+            if (sumY < bottomY) {
+                animatorY = ObjectAnimator.ofFloat(child, "y", child.getY(), height - pby - titleHeight * (index + 1));
+            } else {
+                animatorY = ObjectAnimator.ofFloat(child, "y", child.getY(), child.getOriginalY());
+            }
+            animatorY.setDuration(300);
+            if (builder == null) {
+                builder = set.play(animatorY);
+            } else {
+                builder = builder.with(animatorY);
+            }
+        }
+        set.start();
+        sumY = sumY < bottomY ? bottomY : sumY;
     }
 
     public void setAdapter(CardBagAdapter cardBagAdapter) {
@@ -291,32 +293,24 @@ public class CardBagView extends FrameLayout {
         View convertView = null;
         do {
             Log.d(TAG, String.format("position = %s", position));
-            LinearLayout child = new LinearLayout(getContext());
-            CardBagController cardBagController = new CardBagController();
-            child.setTag(cardBagController);
+            CardBagController cardBagController = new CardBagController(getContext());
             final FrameLayout titleViewGroup = new FrameLayout(getContext());
             final FrameLayout contentViewGroup = new FrameLayout(getContext());
             final View cardTitleView = mAdapter.getCardTitleView(position, titleView, null);
             final View cardConvertView = mAdapter.getView(position, convertView, null);
-            if (cardTitleView.getTag() != null) {
-                titleView = cardTitleView.findFocus();
-            }
-            if (cardConvertView.getTag() != null) {
-                convertView = cardConvertView.findFocus();
-            }
-            child.setOrientation(LinearLayout.VERTICAL);
-            child.addView(titleViewGroup, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, getResources().getDimensionPixelSize(R.dimen.default_card_layout_title)));
-            child.addView(contentViewGroup, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+            cardBagController.setOrientation(LinearLayout.VERTICAL);
+            cardBagController.addView(titleViewGroup, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, getResources().getDimensionPixelSize(R.dimen.default_card_layout_title)));
+            cardBagController.addView(contentViewGroup, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
             titleViewGroup.addView(cardTitleView, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
             contentViewGroup.addView(cardConvertView, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                child.setBackground(mAdapter.getCardBackground(position));
+                cardBagController.setBackground(mAdapter.getCardBackground(position));
             } else {
-                child.setBackgroundDrawable(mAdapter.getCardBackground(position));
+                cardBagController.setBackgroundDrawable(mAdapter.getCardBackground(position));
             }
             titleViewGroup.setId(position);
             titleViewGroup.setOnClickListener(titleListener);
-            addViewInLayout(child, position, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+            addViewInLayout(cardBagController, position, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
             position++;
         } while (position < mCount);
 
