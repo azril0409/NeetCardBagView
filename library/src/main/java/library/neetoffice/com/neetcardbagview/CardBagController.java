@@ -77,7 +77,7 @@ class CardBagController extends LinearLayout {
         setY(computeTargetY());
     }
 
-    public void open(int index) {
+    public void open(int index,long duration) {
         final CardBagView cardBagView = (CardBagView) getParent();
         final float scrollY = cardBagView.getScrollY();
         final float pyt = cardBagView.getPaddingTop();
@@ -90,26 +90,39 @@ class CardBagController extends LinearLayout {
         } else {
             ty = scrollY + pyt;
         }
-        final AnimatorSet set = new AnimatorSet();
-        final ObjectAnimator animation = ObjectAnimator.ofFloat(this, "Y", getY(), ty);
-        final ObjectAnimator animationx = ObjectAnimator.ofFloat(this, "ScaleX", getScaleX(), 1);
-        final ObjectAnimator animationy = ObjectAnimator.ofFloat(this, "ScaleY", getScaleY(), 1);
-        set.play(animation).with(animationx).with(animationy);
-        set.start();
+        if(duration>0){
+            final AnimatorSet set = new AnimatorSet();
+            final ObjectAnimator animation = ObjectAnimator.ofFloat(this, "Y", getY(), ty).setDuration(duration);
+            final ObjectAnimator animationx = ObjectAnimator.ofFloat(this, "ScaleX", getScaleX(), 1).setDuration(duration);
+            final ObjectAnimator animationy = ObjectAnimator.ofFloat(this, "ScaleY", getScaleY(), 1).setDuration(duration);
+            set.play(animation).with(animationx).with(animationy);
+            set.start();
+        }else{
+            setY(ty);
+            setScaleX(1);
+            setScaleY(1);
+        }
     }
 
-    public void close() {
+    public void close(long duration) {
         final float topY = computeTopY();
         final float py = computeY();
-        final AnimatorSet set = new AnimatorSet();
-        final ObjectAnimator animation = ObjectAnimator.ofFloat(this, "Y", getY(), computeTargetY());
         float scale = 1f;
         if (topY > py) {
             scale = py / topY;
         }
-        final ObjectAnimator animationx = ObjectAnimator.ofFloat(this, "ScaleX", getScaleX(), scale);
-        final ObjectAnimator animationy = ObjectAnimator.ofFloat(this, "ScaleY", getScaleY(), scale);
-        set.play(animation).with(animationx).with(animationy);
-        set.start();
+        float ty = computeTargetY();
+        final AnimatorSet set = new AnimatorSet();
+        if(duration>0){
+            final ObjectAnimator animation = ObjectAnimator.ofFloat(this, "Y", getY(), ty).setDuration(duration);
+            final ObjectAnimator animationx = ObjectAnimator.ofFloat(this, "ScaleX", getScaleX(), scale).setDuration(duration);
+            final ObjectAnimator animationy = ObjectAnimator.ofFloat(this, "ScaleY", getScaleY(), scale).setDuration(duration);
+            set.play(animation).with(animationx).with(animationy);
+            set.start();
+        }else {
+            setY(ty);
+            setScaleX(scale);
+            setScaleY(scale);
+        }
     }
 }

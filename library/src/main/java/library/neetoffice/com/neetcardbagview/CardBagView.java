@@ -53,35 +53,23 @@ public class CardBagView extends FrameLayout {
 
         @Override
         public boolean onDown(MotionEvent e) {
-            if (BugConfig.isPrintLog(getContext())) {
-                Log.d(TAG + "_OnGestureListener", "onDown");
-            }
             status = STATUS_ONDOWN;
             return false;
         }
 
         @Override
         public void onShowPress(MotionEvent e) {
-            if (BugConfig.isPrintLog(getContext())) {
-                Log.d(TAG + "_OnGestureListener", "onShowPress");
-            }
             status = STATUS_NORMAL;
         }
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            if (BugConfig.isPrintLog(getContext())) {
-                Log.d(TAG + "_OnGestureListener", "onSingleTapUp");
-            }
             status = STATUS_SINGLETAPUP;
             return false;
         }
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            if (BugConfig.isPrintLog(getContext())) {
-                Log.d(TAG + "_OnGestureListener", "onScroll");
-            }
             status = STATUS_ONSCROLL;
             scrollBy(0, computeTargetY(distanceY));
             return false;
@@ -89,16 +77,10 @@ public class CardBagView extends FrameLayout {
 
         @Override
         public void onLongPress(MotionEvent e) {
-            if (BugConfig.isPrintLog(getContext())) {
-                Log.d(TAG + "_OnGestureListener", "onLongPress");
-            }
         }
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            if (BugConfig.isPrintLog(getContext())) {
-                Log.d(TAG + "_OnGestureListener", String.format("onFling : velocityX = %s , velocityY = %s", velocityX, velocityY));
-            }
             status = STATUS_FLING;
             snapToBottom((int) (-velocityY / 10));
             return false;
@@ -184,26 +166,28 @@ public class CardBagView extends FrameLayout {
     }
 
     public void open(int index) {
-        if (BugConfig.isPrintLog(getContext())) {
-            Log.d(TAG, "open = " + index);
-        }
+        open(index,3000);
+    }
+
+    public void open(int index, long duration) {
         showingCard = index;
         final int mCount = getChildCount();
         for (int i = 0; i < mCount; i++) {
             final CardBagController cardBagController = (CardBagController) getChildAt(i);
-            cardBagController.open(index);
+            cardBagController.open(index, duration);
         }
     }
 
     public void close() {
-        if (BugConfig.isPrintLog(getContext())) {
-            Log.d(TAG, "close");
-        }
+        close(3000);
+    }
+
+    public void close(long duration) {
         showingCard = -1;
         final int mCount = getChildCount();
         for (int i = 0; i < mCount; i++) {
             final CardBagController cardBagController = (CardBagController) getChildAt(i);
-            cardBagController.close();
+            cardBagController.close(duration);
         }
     }
 
