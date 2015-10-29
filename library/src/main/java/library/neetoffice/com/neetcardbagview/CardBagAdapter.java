@@ -9,7 +9,7 @@ import android.view.ViewGroup;
 import android.widget.Adapter;
 
 /**
- * Created by Deo-chainmeans on 2015/10/13.
+ * Created by Deo on 2015/10/13.
  */
 public abstract class CardBagAdapter implements Adapter {
     private final DataSetObservable mDataSetObservable = new DataSetObservable();

@@ -2,4 +2,5 @@
 <resources>
     <dimen name="default_card_layout_title">48dip</dimen>
     <dimen name="default_card_layout_corners">8dp</dimen>
+    <dimen name="default_card_layout_elevatio">4dp</dimen>
 </resources>

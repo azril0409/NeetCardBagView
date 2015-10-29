@@ -73,10 +73,10 @@ public class Adapter extends CardBagTextAdapter {
 
     @Override
     public View getView(final int position, View convertView, ViewGroup parent) {
-        if (convertView == null) {
-            convertView = LayoutInflater.from(getContext()).inflate(R.layout.cell, parent, false);
+        if (position % 2 == 0) {
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.cell1, parent, false);
         } else {
-
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.cell2, parent, false);
         }
         convertView.setOnClickListener(new View.OnClickListener() {
             @Override

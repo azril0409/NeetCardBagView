@@ -7,7 +7,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 /**
- * Created by Deo-chainmeans on 2015/10/13.
+ * Created by Deo on 2015/10/13.
  */
 public abstract class CardBagTextAdapter extends CardBagAdapter {
 
@@ -17,7 +17,7 @@ public abstract class CardBagTextAdapter extends CardBagAdapter {
 
     @Override
     public View getCardTitleView(int position, View titleView, ViewGroup parent) {
-        if(titleView==null){
+        if (titleView == null) {
             titleView = LayoutInflater.from(getContext()).inflate(R.layout.default_card_texttitle, parent, false);
         }
         CharSequence title = getCardTitle(position);
@@ -26,8 +26,4 @@ public abstract class CardBagTextAdapter extends CardBagAdapter {
     }
 
     public abstract CharSequence getCardTitle(int position);
-
-    private static class Title {
-
-    }
 }

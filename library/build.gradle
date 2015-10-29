@@ -20,3 +20,17 @@ android {
 
 dependencies {
 }
+
+def libname = 'CardBagView_100.aar'
+task clearAar(type: Delete) {
+    delete '../aar/'
+}
+
+task makeAar(type: Copy) {
+    from('build/outputs/aar/')
+    into('../aar/')
+    include('library-release.aar')
+    rename ('library-release.aar',libname)
+}
+
+makeAar.dependsOn(clearAar, build)
