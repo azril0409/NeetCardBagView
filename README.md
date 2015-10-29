@@ -20,8 +20,8 @@ API 11+
 ##in java code:
 create Adapter extend CardBagAdapter or CardBagTextAdapter
 ```
-        cardBagView = (CardBagView) findViewById(R.id.cardBagView);
-        cardBagView.setAdapter(new Adapter(this));
+cardBagView = (CardBagView) findViewById(R.id.cardBagView);
+cardBagView.setAdapter(new Adapter(this));
 ```
 
 #License
